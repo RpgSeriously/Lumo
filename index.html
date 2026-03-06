@@ -63,14 +63,14 @@ button {
     <h3>Регистрация / Вход</h3>
     <input type="email" id="email" placeholder="Email">
     <input type="password" id="password" placeholder="Пароль">
-    <button onclick="register()">Register</button>
-    <button onclick="login()">Login</button>
+    <button id="registerBtn">Register</button>
+    <button id="loginBtn">Login</button>
     <p id="authMessage"></p>
 </div>
 
 <div class="post-box" id="postSection" style="display:none;">
     <textarea id="postInput" placeholder="Что происходит?"></textarea>
-    <button onclick="addPost()">Post</button>
+    <button id="postBtn">Post</button>
 </div>
 
 <div id="feed"></div>
@@ -92,7 +92,7 @@ const firebaseConfig = {
   measurementId: "G-0MMXF407E8"
 };
 
-// Инициализация
+// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
@@ -103,11 +103,13 @@ let currentUser = null;
 function register() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
+    if(!email || !password) return;
     createUserWithEmailAndPassword(auth, email, password)
         .then(() => {
             document.getElementById("authMessage").innerText = "Регистрация успешна!";
         })
         .catch(error => {
+            console.log(error);
             document.getElementById("authMessage").innerText = error.message;
         });
 }
@@ -116,16 +118,18 @@ function register() {
 function login() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
+    if(!email || !password) return;
     signInWithEmailAndPassword(auth, email, password)
         .then(() => {
             document.getElementById("authMessage").innerText = "Вход выполнен!";
         })
         .catch(error => {
+            console.log(error);
             document.getElementById("authMessage").innerText = error.message;
         });
 }
 
-// Отслеживаем состояние пользователя
+// Следим за состоянием пользователя
 onAuthStateChanged(auth, user => {
     if(user){
         currentUser = user;
@@ -180,17 +184,29 @@ function loadPosts(){
     });
 }
 
-// Лайк
+// Лайк поста
 async function likePost(id, currentLikes){
     const postRef = doc(db, "posts", id);
     await updateDoc(postRef, { likes: currentLikes + 1 });
 }
 
-// Удаление
+// Удаление поста
 async function deletePost(id){
     const postRef = doc(db, "posts", id);
     await deleteDoc(postRef);
 }
+
+// Добавляем глобальные функции для кнопок (module scope → window)
+window.register = register;
+window.login = login;
+window.addPost = addPost;
+window.likePost = likePost;
+window.deletePost = deletePost;
+
+// Привязываем кнопки к функциям (дополнительно)
+document.getElementById("registerBtn").addEventListener("click", register);
+document.getElementById("loginBtn").addEventListener("click", login);
+document.getElementById("postBtn").addEventListener("click", addPost);
 
 </script>
 
