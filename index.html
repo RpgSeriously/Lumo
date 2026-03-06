@@ -78,31 +78,33 @@ button {
 <script type="module">
 // Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, updateDoc, doc, deleteDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Вставь сюда свой конфиг Firebase
+// Вставляем твой firebaseConfig
 const firebaseConfig = {
-  apiKey: "ТВОЙ_API_KEY",
-  authDomain: "lumoproject.firebaseapp.com",
-  projectId: "lumoproject",
-  storageBucket: "lumoproject.appspot.com",
-  messagingSenderId: "ТВОЙ_SENDER_ID",
-  appId: "ТВОЙ_APP_ID"
+  apiKey: "AIzaSyAEtEVtmQS-8-VSa971Im97Hp6mkP2K_gU",
+  authDomain: "lumoproject-105df.firebaseapp.com",
+  projectId: "lumoproject-105df",
+  storageBucket: "lumoproject-105df.firebasestorage.app",
+  messagingSenderId: "611887907446",
+  appId: "1:611887907446:web:0c5fa8851cc1242ee81557",
+  measurementId: "G-0MMXF407E8"
 };
 
+// Инициализация
 const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
 let currentUser = null;
 
-// Авторизация
+// Регистрация
 function register() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
     createUserWithEmailAndPassword(auth, email, password)
-        .then(userCredential => {
+        .then(() => {
             document.getElementById("authMessage").innerText = "Регистрация успешна!";
         })
         .catch(error => {
@@ -110,11 +112,12 @@ function register() {
         });
 }
 
+// Вход
 function login() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
     signInWithEmailAndPassword(auth, email, password)
-        .then(userCredential => {
+        .then(() => {
             document.getElementById("authMessage").innerText = "Вход выполнен!";
         })
         .catch(error => {
@@ -122,7 +125,7 @@ function login() {
         });
 }
 
-// Следим за состоянием пользователя
+// Отслеживаем состояние пользователя
 onAuthStateChanged(auth, user => {
     if(user){
         currentUser = user;
@@ -154,7 +157,7 @@ async function addPost(){
     document.getElementById("postInput").value = "";
 }
 
-// Загружаем и слушаем посты в реальном времени
+// Лента постов в реальном времени
 function loadPosts(){
     const q = query(postsCollection, orderBy("date","desc"));
     onSnapshot(q, snapshot => {
@@ -177,15 +180,18 @@ function loadPosts(){
     });
 }
 
+// Лайк
 async function likePost(id, currentLikes){
     const postRef = doc(db, "posts", id);
     await updateDoc(postRef, { likes: currentLikes + 1 });
 }
 
+// Удаление
 async function deletePost(id){
     const postRef = doc(db, "posts", id);
     await deleteDoc(postRef);
 }
+
 </script>
 
 </body>
