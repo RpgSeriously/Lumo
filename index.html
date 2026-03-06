@@ -7,7 +7,7 @@
 <style>
 
 body{
-font-family: Arial;
+font-family:Arial;
 background:#f5f5f5;
 max-width:600px;
 margin:auto;
@@ -19,9 +19,9 @@ text-align:center;
 
 .post-box{
 background:white;
-padding:10px;
-margin-bottom:20px;
+padding:15px;
 border-radius:10px;
+margin-bottom:20px;
 }
 
 textarea{
@@ -32,13 +32,23 @@ height:60px;
 button{
 margin-top:10px;
 padding:8px 15px;
+cursor:pointer;
 }
 
 .post{
 background:white;
-padding:10px;
-margin-top:10px;
+padding:15px;
 border-radius:10px;
+margin-top:10px;
+}
+
+.actions{
+margin-top:10px;
+font-size:14px;
+}
+
+.actions button{
+margin-right:10px;
 }
 
 </style>
@@ -60,23 +70,74 @@ border-radius:10px;
 
 <script>
 
+let posts = JSON.parse(localStorage.getItem("lumoPosts")) || []
+
+function savePosts(){
+localStorage.setItem("lumoPosts", JSON.stringify(posts))
+}
+
+function renderPosts(){
+
+const feed = document.getElementById("feed")
+feed.innerHTML = ""
+
+posts.forEach((post,index)=>{
+
+const div = document.createElement("div")
+div.className = "post"
+
+div.innerHTML = `
+${post.text}
+
+<div class="actions">
+<button onclick="likePost(${index})">❤️ ${post.likes}</button>
+<button onclick="deletePost(${index})">🗑 Delete</button>
+</div>
+`
+
+feed.appendChild(div)
+
+})
+
+}
+
 function addPost(){
 
 const text = document.getElementById("postInput").value
 
 if(text === "") return
 
-const post = document.createElement("div")
-post.className = "post"
-post.innerText = text
-
-const feed = document.getElementById("feed")
-
-feed.prepend(post)
+posts.unshift({
+text:text,
+likes:0
+})
 
 document.getElementById("postInput").value = ""
 
+savePosts()
+renderPosts()
+
 }
+
+function likePost(index){
+
+posts[index].likes++
+
+savePosts()
+renderPosts()
+
+}
+
+function deletePost(index){
+
+posts.splice(index,1)
+
+savePosts()
+renderPosts()
+
+}
+
+renderPosts()
 
 </script>
 
