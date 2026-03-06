@@ -1,56 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 
 <head>
-<title>Lumo</title>
+<meta charset="UTF-8">
+<title>Lumo — Mini Social</title>
 
 <style>
-
-body{
-font-family:Arial;
-background:#f5f5f5;
-max-width:600px;
-margin:auto;
+body {
+    font-family: Arial;
+    background: #f5f5f5;
+    max-width: 600px;
+    margin: auto;
+    padding: 10px;
 }
 
-h1{
-text-align:center;
+h1 {
+    text-align: center;
 }
 
-.post-box{
-background:white;
-padding:15px;
-border-radius:10px;
-margin-bottom:20px;
+.auth-box, .post-box {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
 }
 
-textarea{
-width:100%;
-height:60px;
+input, textarea {
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0;
 }
 
-button{
-margin-top:10px;
-padding:8px 15px;
-cursor:pointer;
+button {
+    padding: 8px 15px;
+    margin-top: 5px;
+    cursor: pointer;
 }
 
-.post{
-background:white;
-padding:15px;
-border-radius:10px;
-margin-top:10px;
+.post {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 10px;
 }
 
-.actions{
-margin-top:10px;
-font-size:14px;
+.actions {
+    margin-top: 10px;
+    font-size: 14px;
 }
 
-.actions button{
-margin-right:10px;
+.actions button {
+    margin-right: 10px;
 }
-
 </style>
 </head>
 
@@ -58,87 +59,133 @@ margin-right:10px;
 
 <h1>Lumo</h1>
 
-<div class="post-box">
+<div class="auth-box" id="authBox">
+    <h3>Регистрация / Вход</h3>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Пароль">
+    <button onclick="register()">Register</button>
+    <button onclick="login()">Login</button>
+    <p id="authMessage"></p>
+</div>
 
-<textarea id="postInput" placeholder="Что происходит?"></textarea>
-
-<button onclick="addPost()">Post</button>
-
+<div class="post-box" id="postSection" style="display:none;">
+    <textarea id="postInput" placeholder="Что происходит?"></textarea>
+    <button onclick="addPost()">Post</button>
 </div>
 
 <div id="feed"></div>
 
-<script>
+<script type="module">
+// Firebase SDK
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, deleteDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-let posts = JSON.parse(localStorage.getItem("lumoPosts")) || []
+// Вставь сюда свой конфиг Firebase
+const firebaseConfig = {
+  apiKey: "ТВОЙ_API_KEY",
+  authDomain: "lumoproject.firebaseapp.com",
+  projectId: "lumoproject",
+  storageBucket: "lumoproject.appspot.com",
+  messagingSenderId: "ТВОЙ_SENDER_ID",
+  appId: "ТВОЙ_APP_ID"
+};
 
-function savePosts(){
-localStorage.setItem("lumoPosts", JSON.stringify(posts))
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+
+let currentUser = null;
+
+// Авторизация
+function register() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    createUserWithEmailAndPassword(auth, email, password)
+        .then(userCredential => {
+            document.getElementById("authMessage").innerText = "Регистрация успешна!";
+        })
+        .catch(error => {
+            document.getElementById("authMessage").innerText = error.message;
+        });
 }
 
-function renderPosts(){
-
-const feed = document.getElementById("feed")
-feed.innerHTML = ""
-
-posts.forEach((post,index)=>{
-
-const div = document.createElement("div")
-div.className = "post"
-
-div.innerHTML = `
-${post.text}
-
-<div class="actions">
-<button onclick="likePost(${index})">❤️ ${post.likes}</button>
-<button onclick="deletePost(${index})">🗑 Delete</button>
-</div>
-`
-
-feed.appendChild(div)
-
-})
-
+function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    signInWithEmailAndPassword(auth, email, password)
+        .then(userCredential => {
+            document.getElementById("authMessage").innerText = "Вход выполнен!";
+        })
+        .catch(error => {
+            document.getElementById("authMessage").innerText = error.message;
+        });
 }
 
-function addPost(){
+// Следим за состоянием пользователя
+onAuthStateChanged(auth, user => {
+    if(user){
+        currentUser = user;
+        document.getElementById("authBox").style.display = "none";
+        document.getElementById("postSection").style.display = "block";
+        loadPosts();
+    } else {
+        currentUser = null;
+        document.getElementById("authBox").style.display = "block";
+        document.getElementById("postSection").style.display = "none";
+        document.getElementById("feed").innerHTML = "";
+    }
+});
 
-const text = document.getElementById("postInput").value
+// Работа с постами
+const postsCollection = collection(db, "posts");
 
-if(text === "") return
+async function addPost(){
+    const text = document.getElementById("postInput").value;
+    if(text === "" || !currentUser) return;
 
-posts.unshift({
-text:text,
-likes:0
-})
-
-document.getElementById("postInput").value = ""
-
-savePosts()
-renderPosts()
-
+    await addDoc(postsCollection, {
+        text: text,
+        likes: 0,
+        uid: currentUser.uid,
+        email: currentUser.email,
+        date: Date.now()
+    });
+    document.getElementById("postInput").value = "";
 }
 
-function likePost(index){
-
-posts[index].likes++
-
-savePosts()
-renderPosts()
-
+// Загружаем и слушаем посты в реальном времени
+function loadPosts(){
+    const q = query(postsCollection, orderBy("date","desc"));
+    onSnapshot(q, snapshot => {
+        const feed = document.getElementById("feed");
+        feed.innerHTML = "";
+        snapshot.forEach(docSnap => {
+            const post = docSnap.data();
+            const div = document.createElement("div");
+            div.className = "post";
+            div.innerHTML = `
+                <strong>${post.email}</strong><br>
+                ${post.text}
+                <div class="actions">
+                    <button onclick="likePost('${docSnap.id}', ${post.likes})">❤️ ${post.likes}</button>
+                    ${post.uid === currentUser.uid ? `<button onclick="deletePost('${docSnap.id}')">🗑 Delete</button>` : ""}
+                </div>
+            `;
+            feed.appendChild(div);
+        });
+    });
 }
 
-function deletePost(index){
-
-posts.splice(index,1)
-
-savePosts()
-renderPosts()
-
+async function likePost(id, currentLikes){
+    const postRef = doc(db, "posts", id);
+    await updateDoc(postRef, { likes: currentLikes + 1 });
 }
 
-renderPosts()
-
+async function deletePost(id){
+    const postRef = doc(db, "posts", id);
+    await deleteDoc(postRef);
+}
 </script>
 
 </body>
